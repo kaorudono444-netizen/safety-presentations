@@ -1,0 +1,41 @@
+name: Generate PPTX from Markdown
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'presentations/**'
+      - '.github/workflows/generate-pptx.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+
+      - name: Generate PPTX from Markdown
+        run: |
+          set -e
+          echo "Converting presentations/사업장_위험성평가_발표_slides.md -> presentations/사업장_위험성평가_발표.pptx"
+          pandoc "presentations/사업장_위험성평가_발표_slides.md" -o "presentations/사업장_위험성평가_발표.pptx" --resource-path=presentations || true
+
+      - name: Commit and push generated PPTX
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add presentations/사업장_위험성평가_발표.pptx || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Generate PPTX from slides.md" || true
+            git push origin HEAD:main || true
+          fi
